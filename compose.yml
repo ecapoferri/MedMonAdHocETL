@@ -1,0 +1,30 @@
+volumes:
+  postgres-data:
+    external: false
+
+networks:
+  local_etl:
+    external: false
+
+services:
+  pg:
+    image: postgres:alpine
+    volumes: [postgres-data:/var/lib/postgresql/data]
+    networks: [local_etl]
+    expose: [5432]
+    ports: [5435:5432]
+    environment:
+      POSTGRES_INITDB_ARGS: >
+        --encoding=UTF8 --lc-collate=en_US.utf8 --lc-ctype=en_US.utf8
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: medmon
+  script-worker:
+    depends_on: [pg]
+    build: script-worker/
+    # stdin_open: true
+    # tty: true
+    networks: [local_etl]
+    volumes: [./bind/source_data:/source_data]
+    entrypoint:
+      - /app/run.sh

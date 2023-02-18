@@ -1,0 +1,6 @@
+**__pycache__**
+*.pyc
+*.code-workspace
+.vscode
+bind/source_data/*
+*.xlsx

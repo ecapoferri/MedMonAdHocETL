@@ -1,0 +1,11 @@
+numpy
+pandas
+openpyxl
+psycopg2
+sqlalchemy==1.4.44
+autopep8
+pyyaml
+
+# numpy==1.24.0 : numpy
+# pandas==1.5.2 : pandas, openpyxl
+# SQLAlchemy==1.4.44 : sqlalchemy, psycopg2

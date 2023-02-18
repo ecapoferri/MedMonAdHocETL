@@ -1,0 +1,75 @@
+DEFAULT:
+  CONN_STRING: postgresql://postgres:postgres@pg:5432/medmon
+  TABLE_SQL_FILE: cascade-tables.sql
+
+detail:
+  src_dir: MediaMonitors-Details
+  glob: '*.xlsx'
+  sheet_name: Detail View
+  skipfoot: 38
+  skiphead: 2
+  usecols:
+    - Media Outlet
+    - Market
+    - Account
+    - Parent
+    - Category
+    - Instances
+    - AdRev®
+  rename:
+    Media Outlet: outlet
+    Market: market
+    Account: company
+    Parent: parent_company
+    Category: category
+    Instances: instance_qty
+    AdRev®: ad_spend
+  table_name: f_detail
+  pre_sql: null
+company:
+  table_name: d_company
+  idx_col: company_idx
+  usecols:
+    - company
+    - parent_company
+    - category
+  name_col: company
+  pre_sql: null
+category:
+  src_file: MediaMonitors-CategoryKey.xlsx
+  sheet_name: cat_key
+  table_name: k_category
+  usecols:
+    - category_name
+    - category_group
+  pre_sql: null
+outlet:
+  src_file: MediaMonitors-OutletKey.xlsx
+  table_name: d_outlet
+  sheet_name: 'outlet_key'
+  idx_col: outlet_idx
+  media_type_enum_vals:
+    - TVCA
+    - NEWSP
+    - RADIO
+    - TVBC
+  enum_name: outlet_type_enum
+  usecols:
+    - name_callsign
+    - type
+  fields:
+    - col_name: name_callsign
+      astype: string
+      dtype: varchar
+    - col_name: type
+      astype: category
+      dtype: null
+  astype:
+    name_callsign: string
+    type: category
+  type_col: type
+  dtype:
+    name_callsign: VARCHAR
+  pre_sql: >
+    DROP TABLE IF EXISTS d_outlet CASCADE;
+    DROP TYPE IF EXISTS outlet_type_enum CASCADE;
