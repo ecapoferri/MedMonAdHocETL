@@ -1,4 +1,5 @@
 """TODO: DOCSTRING"""
+import logging
 from concurrent.futures import Future, ProcessPoolExecutor, as_completed
 from os import environ as osenviron
 from pathlib import Path
@@ -22,6 +23,7 @@ CONN_STRING = osenviron['CONN_STRING']
 
 _DBEngine = Annotated[sqlalchemy.engine.base.Engine,
                       "sqlalchemy.engine.base.Engine"]
+_Logger = Annotated[logging.Logger, "logging.Logger"]
 
 
 def _detail_extract_each(path_: Path, cfg_: dict) -> Df:
@@ -104,10 +106,16 @@ def _load_to_db(df_: Df, table_name: str, db_: _DBEngine,
         )
 
 
+
+def _logging_setup() -> _Logger:
+    
+    return logging.getLogger()
+
+
 def _main():
     # Load arguments from yml file.
     cfgs = ymlload(
-        (APP_PATH / '.cfg' / 'cfg.yml').read_text(),
+        (APP_PATH / 'cfg.yml').read_text(),
         YmlLoader
     )
     # Extract config arguments for each table.
