@@ -1,23 +1,27 @@
--- The following tables are intermediate tables creating integer IDs to be used
---      in creating relationships in production data models.
+-- POSTGRESQL==11+ The following tables are intermediate tables creating integer
+-- IDs to be used in creating relationships in production data models. These are
+--      created as tables, rather than Views to minimize the processing in
+--      production queries (which can add up with so many rows to process in the
+--      source table) The snake_case named tables remain as intermediate source
+--      tables and the camelCase named tables should be used for production.
 
--- With so many rows of data (upwards of 4M) and so many companies (over )
--- These queries should be executed after the main python script (__main__.py)
---      has been executed.
+-- With so many rows of data (upwards of 4M) and so many companies (over ) These
+-- queries should be executed after the main python script (__main__.py) has
+--      been executed.
 
-
+-- Necessary for crosstab. May be redundant for later versions of Postgresql.
 CREATE extension tablefunc;
 
 -- #############################################################################
 -- The following 'k_tables'  are preliminary dimension tables for each unique
---      company, media market, and category.
--- Each enerates an arbitrary integer id ('_idx'), acting as a primary key
---      which is used to replace the text values in the production version of
---      the Media Monitors Detail Table. With such a large source dataset,
---      production environments (Excel, PBI) can get bogged down with so much
---      string matching.
--- These keys are joined with other dimension table values (e.g. media type)
---      and/or maintain other values derived from the source table (parent_company)
+--      company, media market, and category. Each enerates an arbitrary integer
+--      id ('_idx'), acting as a primary key which is used to replace the text
+--      values in the production version of the Media Monitors Detail Table.
+--      With such a large source dataset, production environments (Excel, PBI)
+--      can get bogged down with so much string matching. These keys are joined
+--      with other dimension table values (e.g. media type) and/or maintain
+--      other values derived from the source table (parent_company)
+
 DROP TABLE IF EXISTS k_category CASCADE;
 CREATE TABLE IF NOT EXISTS k_category AS
     WITH names AS (SELECT DISTINCT(category) val FROM f_detail)
@@ -33,7 +37,7 @@ CREATE TABLE IF NOT EXISTS k_company AS
     WITH names AS (
         SELECT DISTINCT(company) val, category, parent_company
         FROM f_detail
-        -- These three should be unique per company.
+        -- These three, in combination, should be unique per company. 
         GROUP BY  val, category,parent_company)
     SELECT
         val company,
@@ -67,9 +71,8 @@ CREATE TABLE IF NOT EXISTS k_market AS
 -- #############################################################################
 
 -- These tables ('fTables' and 'dTables') are production ready tables that can
---      be connected withsimple 'SELECT *' queries.
--- Relationships can be joined on the '_idx' columns to optimize performance
---      in production environments.
+--      be connected withsimple 'SELECT *' queries. Relationships can be joined
+-- on the '_idx' columns to optimize performance in production environments.
 DROP TABLE IF EXISTS "fDetail" CASCADE;
 CREATE TABLE IF NOT EXISTS  "fDetail" AS
     SELECT
@@ -113,6 +116,7 @@ CREATE TABLE IF NOT EXISTS  "dMarket" AS
     FROM k_market
 ;
 
+-- Whether a company has purchased media in multiple markets.
 DROP TABLE IF EXISTS "dMarketPresence" CASCADE;
 CREATE TABLE IF NOT EXISTS  "dMarketPresence" AS
     SELECT
@@ -151,7 +155,8 @@ CREATE TABLE IF NOT EXISTS  "fAdSpendByType" AS
 ;
 
 
--- These are prepared to be joined to 'dCompany' as dimensional values for filtering.
+-- These are prepared to be joined to 'dCompany' as dimensional values for
+--      filtering.
 DROP TABLE IF EXISTS "fAdBuysByType" CASCADE;
 CREATE TABLE IF NOT EXISTS  "fAdBuysByType" AS
     SELECT * FROM crosstab(
