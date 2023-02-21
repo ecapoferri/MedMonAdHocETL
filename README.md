@@ -1,4 +1,3 @@
-
 # Media Monitors 2022 All Market Analysis, Sales Lead Identification
 
 ## Abstract
@@ -109,22 +108,38 @@ cluster via ODBC or other PostgreSQL connector.
 1. Add the source data (available upon request, [see above](#requirements)). Add
   to the repo directory in `bind/source_data/` e.g.:
     - `MedMonAdHocETL/bind/source_data/MediaMonitors-Details/AdExpenditure-All_LOCAL_Markets-01`...,
-      `02`..., *`.xlsx`
+      `02`..., *...`.xlsx`
     - `MedMonAdHocETL/bind/source_data/MediaMonitors-CategoryKey.xlsx`
     - `MedMonAdHocETL/bind/source_data/MediaMonitors-OutletKey.xlsx`
-      - \[Files will be provided as a directory structured tar ball or other
-      archive for quick insertion.\]
+      - \[Files or the entire repo will be provided as a directory structured
+        tar ball or other archive for quick insertion.\]
 1. Run `$ docker compose up` within the cloned directory at the top level
-   (`MedMonAdHocETL/`).
+  (`MedMonAdHocETL/`). It will take several minutes for the container images to
+  build and for the script and queries to run. Ignore 'NOTICE' level log
+  messages from 'script-worker', as the SQL queries have DROP TABLE IF EXISTS
+  queries in case 'script-worker' needs to be run again without removing the
+  'pg' container.
+1. The 'script-worker' service container will exit and the 'medmon' db on the
+  'pg' service container will be ready to use with a local production
+  environment.
 
 ### Relaunch the local DB
 
-If necessary, relaunch the 'pg' database service container via your preferred Docker
-interface: CLI, UI, or, within the top docker compose build context
-(`MedMonAdHocETL/`), using Docker Compose: `$ docker compose run pg`, provided
-the local Docker Volume has not been deleted.
+If necessary, relaunch the 'pg' database service container via your preferred
+Docker interface: CLI, UI, or, within the top docker compose build context
+(`MedMonAdHocETL/`), using Docker Compose: `$ docker compose run -p 5435:5432 -d
+pg`, provided the local Docker Volume has not been deleted.
 
 ## License (None)
 
 This code repository and any accompanying data is provided only for private
 demonstration and should not be otherwise distributed.
+
+THE CODE REPOSITORY AND ANY ACCOMPANYING SOURCE DATA IS PROVIDED "AS IS",
+WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO
+THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE CODE
+REPOSITORY AND ANY ACCOMPANYING SOURCE DATA OR THE USE OR OTHER DEALINGS IN THE
+CODE REPOSITORY AND ANY ACCOMPANYING SOURCE DATA.
