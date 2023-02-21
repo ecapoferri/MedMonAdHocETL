@@ -26,5 +26,4 @@ services:
     # tty: true
     networks: [local_etl]
     volumes: [./bind/source_data:/source_data]
-    entrypoint:
-      - /app/run.sh
+    command: /app/run.sh
