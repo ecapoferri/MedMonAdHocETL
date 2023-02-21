@@ -38,7 +38,7 @@ company:
 category:
   src_file: MediaMonitors-CategoryKey.xlsx
   sheet_name: cat_key
-  table_name: k_category
+  table_name: d_category
   usecols:
     - category_name
     - category_group
