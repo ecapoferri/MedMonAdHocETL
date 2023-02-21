@@ -10,7 +10,7 @@
 --      been executed.
 
 -- Necessary for crosstab. May be redundant for later versions of Postgresql.
-CREATE extension tablefunc;
+CREATE extension IF NOT EXISTS tablefunc;
 
 -- #############################################################################
 -- The following 'k_tables'  are preliminary dimension tables for each unique
@@ -23,7 +23,7 @@ CREATE extension tablefunc;
 --      other values derived from the source table (parent_company)
 
 DROP TABLE IF EXISTS k_category CASCADE;
-CREATE TABLE IF NOT EXISTS k_category AS
+CREATE TABLE k_category AS
     WITH names AS (SELECT DISTINCT(category) val FROM f_detail)
     SELECT
         val category,
@@ -33,12 +33,12 @@ CREATE TABLE IF NOT EXISTS k_category AS
 ;
 
 DROP TABLE IF EXISTS k_company CASCADE;
-CREATE TABLE IF NOT EXISTS k_company AS 
+CREATE TABLE k_company AS 
     WITH names AS (
         SELECT DISTINCT(company) val, category, parent_company
         FROM f_detail
         -- These three, in combination, should be unique per company. 
-        GROUP BY  val, category,parent_company)
+        GROUP BY  val, category, parent_company)
     SELECT
         val company,
         parent_company,
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS k_company AS
 
 -- Likewise for media outlets. This key
 DROP TABLE IF EXISTS k_outlet CASCADE;
-CREATE TABLE IF NOT EXISTS k_outlet AS 
+CREATE TABLE k_outlet AS 
     WITH names AS (SELECT DISTINCT(outlet) val FROM f_detail)
     SELECT
         val outlet,
@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS k_outlet AS
 ;
 
 DROP TABLE IF EXISTS k_market CASCADE;
-CREATE TABLE IF NOT EXISTS k_market AS 
+CREATE TABLE k_market AS 
     WITH names AS (SELECT DISTINCT(market) val FROM f_detail)
     SELECT
         val market,
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS k_market AS
 --      be connected withsimple 'SELECT *' queries. Relationships can be joined
 -- on the '_idx' columns to optimize performance in production environments.
 DROP TABLE IF EXISTS "fDetail" CASCADE;
-CREATE TABLE IF NOT EXISTS  "fDetail" AS
+CREATE TABLE "fDetail" AS
     SELECT
         c.company_idx,
         o.outlet_idx,
@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS  "fDetail" AS
 ;
 
 DROP TABLE IF EXISTS "dOutlet" CASCADE;
-CREATE TABLE IF NOT EXISTS  "dOutlet" AS
+CREATE TABLE  "dOutlet" AS
     SELECT
         k.outlet_idx,
         o.name_callsign "Outlet",
@@ -99,7 +99,7 @@ CREATE TABLE IF NOT EXISTS  "dOutlet" AS
 ;
 
 DROP TABLE IF EXISTS "dCategory" CASCADE;
-CREATE TABLE IF NOT EXISTS  "dCategory" AS
+CREATE TABLE  "dCategory" AS
     SELECT
         k.category_idx,
         c.category_name "Category",
@@ -109,7 +109,7 @@ CREATE TABLE IF NOT EXISTS  "dCategory" AS
 ;
 
 DROP TABLE IF EXISTS "dMarket" CASCADE;
-CREATE TABLE IF NOT EXISTS  "dMarket" AS
+CREATE TABLE  "dMarket" AS
     SELECT
         market "Market",
         market_idx
@@ -118,7 +118,7 @@ CREATE TABLE IF NOT EXISTS  "dMarket" AS
 
 -- Whether a company has purchased media in multiple markets.
 DROP TABLE IF EXISTS "dMarketPresence" CASCADE;
-CREATE TABLE IF NOT EXISTS  "dMarketPresence" AS
+CREATE TABLE "dMarketPresence" AS
     SELECT
         DISTINCT(company_idx) company_idx,
         COUNT(DISTINCT(market_idx)) distinct_market_count,
@@ -134,9 +134,9 @@ CREATE TABLE IF NOT EXISTS  "dMarketPresence" AS
 ;
 
 DROP TABLE IF EXISTS "fAdSpendByType" CASCADE;
-
-CREATE TABLE IF NOT EXISTS  "fAdSpendByType" AS
+CREATE TABLE "fAdSpendByType" AS
     SELECT * FROM crosstab(
+        -- Unpivoted data
         'SELECT
             d.company_idx,
             o."MediaType",
@@ -144,13 +144,14 @@ CREATE TABLE IF NOT EXISTS  "fAdSpendByType" AS
         FROM
             "fDetail" d LEFT JOIN "dOutlet" o USING (outlet_idx)
         GROUP BY d.company_idx, o."MediaType"',
+        -- Attribute labels, alpha' order
         'SELECT DISTINCT("MediaType") a FROM "dOutlet" ORDER BY 1'
     ) AS (
         company_idx INTEGER,
-        TVCA NUMERIC,
-        NEWSP NUMERIC,
-        RADIO NUMERIC,
-        TVBC NUMERIC
+        newsp NUMERIC,
+        radio NUMERIC,
+        tvbc NUMERIC,
+        tvca NUMERIC
 )
 ;
 
@@ -158,7 +159,7 @@ CREATE TABLE IF NOT EXISTS  "fAdSpendByType" AS
 -- These are prepared to be joined to 'dCompany' as dimensional values for
 --      filtering.
 DROP TABLE IF EXISTS "fAdBuysByType" CASCADE;
-CREATE TABLE IF NOT EXISTS  "fAdBuysByType" AS
+CREATE TABLE "fAdBuysByType" AS
     SELECT * FROM crosstab(
         'SELECT
             d.company_idx,
@@ -170,14 +171,15 @@ CREATE TABLE IF NOT EXISTS  "fAdBuysByType" AS
         'SELECT DISTINCT("MediaType") FROM "dOutlet" ORDER BY 1'
     ) AS (
         company_idx INTEGER,
-        TVCA NUMERIC,
-        NEWSP NUMERIC,
-        RADIO NUMERIC,
-        TVBC NUMERIC
+        newsp NUMERIC,
+        radio NUMERIC,
+        tvbc NUMERIC,
+        tvca NUMERIC
 )
 ;
 
-CREATE TABLE IF NOT EXISTS  "dCompany" AS
+DROP TABLE IF EXISTS "dCompany" CASCADE;
+CREATE TABLE "dCompany" AS
     SELECT
         c.company_idx::INTEGER company_idx,
         ck.category_idx::INTEGER category_idx,
@@ -193,28 +195,33 @@ CREATE TABLE IF NOT EXISTS  "dCompany" AS
         b.tvca::INTEGER "TVCA_AdBuys",
         b.radio::INTEGER "Radio_AdBuys",
         b.newsp::INTEGER "Newsp_AdBuys",
+        -- If no count of ad buys for 
         CASE
             WHEN b.tvbc IS NULL THEN TRUE
             ELSE FALSE
-            END no_tvbc,
+            END
+            no_tvbc,
         CASE
             WHEN b.tvca IS NOT NULL THEN TRUE
             ELSE FALSE
-            END has_tvca,
+            END
+            has_tvca,
 
         (
             COALESCE(b.tvbc, 0)
             + COALESCE(b.tvca, 0)
             + COALESCE(b.radio, 0)
             + COALESCE(b.newsp, 0)
-        )::INTEGER "Total_AdBuys",
+        )::INTEGER
+            "Total_AdBuys",
 
         (
             COALESCE(t.tvbc, 0)
             + COALESCE(t.tvca, 0)
             + COALESCE(t.radio, 0)
             + COALESCE(t.newsp, 0)
-        ) "Total_AdSpend",
+        )
+            "Total_AdSpend",
 
         ROUND(
             100 * t.tvbc /
