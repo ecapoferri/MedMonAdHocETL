@@ -174,18 +174,6 @@ def _main():
     for job in load_jobs:
         if job.is_alive():
             job.join()
-    # for _df, _cfg, _dtype in (
-    #     (details_df, detail_cfgs, None),
-    #     (outlet_df, outlet_cfgs, outlet_dtype),
-    #     (category_df, category_cfgs, None),
-    # ):
-    #     _load_to_db(
-    #         df_=_df,
-    #         table_name=_cfg['table_name'],
-    #         db_=db_eng,
-    #         dtype=_dtype,
-    #         pre_sql=_cfg['pre_sql']
-    #     )
 
 
 if __name__ == "__main__":
